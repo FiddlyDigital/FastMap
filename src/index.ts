@@ -18,7 +18,7 @@ export class FastMap<T> {
     public constructor(width: number, height: number) {
         this.width = width;
         this.height = height;
-        this.map = new Array<T>(width * height);
+        this.map = new Array<T | null>(width * height);
         this.map.fill(null);
     }
 

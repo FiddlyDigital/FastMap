@@ -1,0 +1,36 @@
+name: Release Pipeline
+
+on:
+  push:
+    branches:
+     - main
+     
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 20
+
+      - name: Install Package Dependencies
+        run: npm ci
+
+      - name: Build the Package
+        run: npm run build
+
+      - name: Run Tests
+        run: npm run test
+
+      - name: Publish Package to NPM 🚀
+        uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
+          access: public

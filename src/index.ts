@@ -8,12 +8,14 @@ export class FastMap<T> {
     private map: Array<T | null> = [];
     private width: number = 0;
     private height: number = 0;
+    private memoCache: Map<string, T | null> = new Map();
 
     /**
      * Creates a new FastMap with the given width and height
      * @constructor
      * @param width The width of the map
      * @param height The height of the map
+     * @throws {Error} If the given width or height are not integers, are less than or equal to 0, or if the dimensions are too large
      */
     public constructor(width: number, height: number) {
         // Check if numbers are valid, throw if not
@@ -29,14 +31,22 @@ export class FastMap<T> {
      * Gets a value from the map at the given coordinates
      * @param {number} x horizontal index
      * @param {number} y vertical index
+     * @throws {Error} If the given indices are not integers, or out of bounds
      * @returns {T | null} The value at the given coordinates, or null if there is no value there
      */
     public Get(x: number, y: number): T | null {
+        const key = `${x},${y}`;
+        if (this.memoCache.has(key)) {
+            return this.memoCache.get(key) || null;
+        }
+        
         if (!this.checkIndicesAreValid(x, y)) {
             throw new Error("Index out of bounds");
         }
 
-        return this.map[this.convert2DTo1D(x, y)];
+        const value = this.map[this.convert2DTo1D(x, y)];
+        this.memoCache.set(key, value);
+        return value;
     }
 
     /**
@@ -44,6 +54,7 @@ export class FastMap<T> {
      * @param {number} x horizontal index
      * @param {number} y vertical index
      * @param {number} value The value to place, that is either of type T or null
+     * @throws {Error} If the given indices are not integers, or out of bounds
      * @returns {void} Nothing
      */
     public Set(x: number, y: number, value: T | null): void {
@@ -52,6 +63,8 @@ export class FastMap<T> {
         }
 
         this.map[this.convert2DTo1D(x, y)] = value;
+        // Invalidate cache entry when value is set
+        this.memoCache.delete(`${x},${y}`);
     }
 
     /**
@@ -72,8 +85,8 @@ export class FastMap<T> {
 
     /**
      * Takes 2D coordinates and converts them to a 1D index
-     * @param {number} x horizontal index
-     * @param {number} y vertical index
+     * @param {number} x horizontal index (as this is called post validation, will always be an integer)
+     * @param {number} y vertical index   (as this is called post validation, will always be an integer)
      * @returns {number} The 1D index of the 2D coordinates
      */
     private convert2DTo1D(x: number, y: number): number {
@@ -104,7 +117,7 @@ export class FastMap<T> {
      */
     private validateSize(width: number, height: number): void {
         if (!Number.isInteger(width) || !Number.isInteger(height)) {
-            throw new Error("Width and Geight must be Integer values");
+            throw new Error("Width and Height must be Integer values");
         }
 
         if (width <= 0 || height <= 0) {

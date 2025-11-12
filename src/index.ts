@@ -5,10 +5,9 @@
  * Inspired by the CImage class in Vladimir Kovalevsky's book "Modern Algorithms for Image Processing"
  */
 export class FastMap<T> {
-    private map: Array<T | null> = [];
+    private map: Array<T | undefined> = [];
     private width: number = 0;
     private height: number = 0;
-    private memoCache: Map<string, T | null> = new Map();
 
     /**
      * Creates a new FastMap with the given width and height
@@ -23,8 +22,7 @@ export class FastMap<T> {
 
         this.width = width;
         this.height = height;
-        this.map = new Array<T | null>(width * height);
-        this.map.fill(null);
+        this.map = new Array<T | undefined>(width * height);
     }
 
     /**
@@ -32,39 +30,56 @@ export class FastMap<T> {
      * @param {number} x horizontal index
      * @param {number} y vertical index
      * @throws {Error} If the given indices are not integers, or out of bounds
-     * @returns {T | null} The value at the given coordinates, or null if there is no value there
+     * @returns {T | undefined} The value at the given coordinates, or undefined if there is no value there
+     * @remarks This method performs bounds checking so inherintly has some overhead. For performance-critical code, consider using GetUnsafe instead.
      */
-    public Get(x: number, y: number): T | null {
-        const key = `${x},${y}`;
-        if (this.memoCache.has(key)) {
-            return this.memoCache.get(key) || null;
-        }
-        
+    public Get(x: number, y: number): T | undefined {
         if (!this.checkIndicesAreValid(x, y)) {
             throw new Error("Index out of bounds");
         }
-
-        const value = this.map[this.convert2DTo1D(x, y)];
-        this.memoCache.set(key, value);
-        return value;
+        return this.map[this.convert2DTo1D(x, y)];
     }
 
     /**
      * Puts a value into the map at the given coordinates
      * @param {number} x horizontal index
      * @param {number} y vertical index
-     * @param {number} value The value to place, that is either of type T or null
+     * @param {number} value The value to place, that is either of type T or undefined
      * @throws {Error} If the given indices are not integers, or out of bounds
      * @returns {void} Nothing
+     * @remarks This method performs bounds checking so inherintly has some overhead. For performance-critical code, consider using SetUnsafe instead.
      */
-    public Set(x: number, y: number, value: T | null): void {
+    public Set(x: number, y: number, value: T | undefined): void {
         if (!this.checkIndicesAreValid(x, y)) {
             throw new Error("Index out of bounds");
         }
 
         this.map[this.convert2DTo1D(x, y)] = value;
-        // Invalidate cache entry when value is set
-        this.memoCache.delete(`${x},${y}`);
+    }
+
+    /**
+     * Gets a value from the map at the given coordinates without bounds checking
+     * WARNING: This is unsafe and will cause undefined behavior if coordinates are out of bounds!
+     * Only use this in performance-critical code where you are certain the coordinates are valid.
+     * @param {number} x horizontal index
+     * @param {number} y vertical index
+     * @returns {T | undefined} The value at the given coordinates, or undefined if there is no value there
+     */
+    public GetUnsafe(x: number, y: number): T | undefined {
+        return this.map[y * this.width + x];
+    }
+
+    /**
+     * Puts a value into the map at the given coordinates without bounds checking
+     * WARNING: This is unsafe and will cause undefined behavior if coordinates are out of bounds!
+     * Only use this in performance-critical code where you are certain the coordinates are valid.
+     * @param {number} x horizontal index
+     * @param {number} y vertical index
+     * @param {number} value The value to place, that is either of type T or undefined
+     * @returns {void} Nothing
+     */
+    public SetUnsafe(x: number, y: number, value: T | undefined): void {
+        this.map[y * this.width + x] = value;
     }
 
     /**

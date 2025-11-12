@@ -8,11 +8,11 @@ describe('FastMap', () => {
             expect(map.Height()).toBe(4);
         });
 
-        it('should initialize all values to null', () => {
+        it('should initialize all values to undefined', () => {
             const map = new FastMap<string>(2, 2);
             for (let y = 0; y < 2; y++) {
                 for (let x = 0; x < 2; x++) {
-                    expect(map.Get(x, y)).toBeNull();
+                    expect(map.Get(x, y)).toBeUndefined();
                 }
             }
         });
@@ -25,8 +25,8 @@ describe('FastMap', () => {
             map = new FastMap<number>(3, 3);
         });
 
-        it('should return null for unset values', () => {
-            expect(map.Get(0, 0)).toBeNull();
+        it('should return undefined for unset values', () => {
+            expect(map.Get(0, 0)).toBeUndefined();
         });
 
         it('should throw error for negative x coordinate', () => {
@@ -62,12 +62,6 @@ describe('FastMap', () => {
             map.Set(1, 1, 10);
             map.Set(1, 1, 20);
             expect(map.Get(1, 1)).toBe(20);
-        });
-
-        it('should allow setting null values', () => {
-            map.Set(0, 0, 42);
-            map.Set(0, 0, null);
-            expect(map.Get(0, 0)).toBeNull();
         });
 
         it('should throw error for out of bounds coordinates', () => {
@@ -138,6 +132,62 @@ describe('FastMap', () => {
             const totalTime = performance.now() - startTime;
             expect(totalTime).toBeLessThan(1000); // Should complete in less than 1 second
         });
+
+        it('should be competitive with native 2D array when using unsafe methods', () => {
+            const width = 1000;
+            const height = 1000;
+            const operations = 100000;
+            const fastMap = new FastMap<number>(width, height);
+            const array2D: number[][] = Array.from({ length: height }, () => Array(width).fill(0));
+
+            // Warm up
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    fastMap.SetUnsafe(x, y, 0);
+                    array2D[y][x] = 0;
+                }
+            }
+
+            // Test Set operations
+            const fastMapUnsafeSetTime = measureTime(() => {
+                for (let i = 0; i < operations; i++) {
+                    const x = Math.floor(Math.random() * width);
+                    const y = Math.floor(Math.random() * height);
+                    fastMap.SetUnsafe(x, y, i);
+                }
+            });
+
+            const array2DSetTime = measureTime(() => {
+                for (let i = 0; i < operations; i++) {
+                    const x = Math.floor(Math.random() * width);
+                    const y = Math.floor(Math.random() * height);
+                    array2D[y][x] = i;
+                }
+            });
+
+            // FastMap unsafe should be within 10% of 2D array performance for Set
+            expect(fastMapUnsafeSetTime).toBeLessThan(array2DSetTime * 1.1);
+
+            // Test Get operations
+            const fastMapUnsafeGetTime = measureTime(() => {
+                for (let i = 0; i < operations; i++) {
+                    const x = Math.floor(Math.random() * width);
+                    const y = Math.floor(Math.random() * height);
+                    fastMap.GetUnsafe(x, y);
+                }
+            });
+
+            const array2DGetTime = measureTime(() => {
+                for (let i = 0; i < operations; i++) {
+                    const x = Math.floor(Math.random() * width);
+                    const y = Math.floor(Math.random() * height);
+                    array2D[y][x];
+                }
+            });
+
+            // FastMap unsafe should be within 10% of 2D array performance for Get
+            expect(fastMapUnsafeGetTime).toBeLessThan(array2DGetTime * 1.1);
+        });
     });
 
     // Additional edge cases
@@ -163,8 +213,8 @@ describe('FastMap', () => {
             });
 
             // Check some empty spaces
-            expect(map.Get(1, 1)).toBeNull();
-            expect(map.Get(98, 98)).toBeNull();
+            expect(map.Get(1, 1)).toBeUndefined();
+            expect(map.Get(98, 98)).toBeUndefined();
         });
     });
 
@@ -179,11 +229,11 @@ describe('FastMap', () => {
 
             // Move a piece
             const piece = board.Get(1, 0);
-            board.Set(1, 0, null);
+            board.Set(1, 0, undefined);
             board.Set(2, 2, piece);
 
             expect(board.Get(2, 2)).toBe('knight');
-            expect(board.Get(1, 0)).toBeNull();
+            expect(board.Get(1, 0)).toBeUndefined();
         });
 
         it('should work as a tile map', () => {
@@ -240,3 +290,9 @@ describe('FastMap', () => {
         });
     });
 });
+
+function measureTime(callback: () => void): number {
+    const start = performance.now();
+    callback();
+    return performance.now() - start;
+}

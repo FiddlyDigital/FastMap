@@ -6,31 +6,34 @@ on:
      - main
      
 permissions:
-  contents: write
+  id-token: write  # Required for OIDC
+  contents: read
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      # Ensure npm 11.5.1 or later is installed
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - name: Install Package Dependencies
         run: npm ci
 
       - name: Build the Package
-        run: npm run build
+        run: npm run build --if-present
 
       - name: Run Tests
         run: npm run test
 
       - name: Publish Package to NPM 🚀
-        uses: JS-DevTools/npm-publish@v1
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
-          access: public
+        run: npm publish
